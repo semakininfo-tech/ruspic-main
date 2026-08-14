@@ -1,0 +1,16 @@
+[14-Aug-2026 11:55:29 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method RUSPIC_Cat_Admin::media_field() in C:\Users\Simon\Local Sites\ruspic\app\public\wp-content\plugins\ruspic-cat\includes\class-admin.php:36
+Stack trace:
+#0 C:\Users\Simon\Local Sites\ruspic\app\public\wp-includes\class-wp-hook.php(341): RUSPIC_Cat_Admin->brands('')
+#1 C:\Users\Simon\Local Sites\ruspic\app\public\wp-includes\class-wp-hook.php(365): WP_Hook->apply_filters('', Array)
+#2 C:\Users\Simon\Local Sites\ruspic\app\public\wp-includes\plugin.php(522): WP_Hook->do_action(Array)
+#3 C:\Users\Simon\Local Sites\ruspic\app\public\wp-admin\admin.php(264): do_action('ruspic-cat_page...')
+#4 {main}
+  thrown in C:\Users\Simon\Local Sites\ruspic\app\public\wp-content\plugins\ruspic-cat\includes\class-admin.php on line 36
+[14-Aug-2026 11:55:34 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method RUSPIC_Cat_Admin::media_field() in C:\Users\Simon\Local Sites\ruspic\app\public\wp-content\plugins\ruspic-cat\includes\class-admin.php:38
+Stack trace:
+#0 C:\Users\Simon\Local Sites\ruspic\app\public\wp-includes\class-wp-hook.php(341): RUSPIC_Cat_Admin->categories('')
+#1 C:\Users\Simon\Local Sites\ruspic\app\public\wp-includes\class-wp-hook.php(365): WP_Hook->apply_filters('', Array)
+#2 C:\Users\Simon\Local Sites\ruspic\app\public\wp-includes\plugin.php(522): WP_Hook->do_action(Array)
+#3 C:\Users\Simon\Local Sites\ruspic\app\public\wp-admin\admin.php(264): do_action('ruspic-cat_page...')
+#4 {main}
+  thrown in C:\Users\Simon\Local Sites\ruspic\app\public\wp-content\plugins\ruspic-cat\includes\class-admin.php on line 38
