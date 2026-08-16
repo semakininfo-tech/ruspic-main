@@ -1,0 +1,21 @@
+name: Package RUSPIC Cat
+
+on:
+  push:
+    branches:
+      - feature/ruspic-cat-parsing-import
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package plugin
+        run: |
+          cd app/public/wp-content/plugins
+          zip -qr "$GITHUB_WORKSPACE/ruspic-cat-1.1.0-parsing-import.zip" ruspic-cat
+      - name: Upload plugin ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruspic-cat-1.1.0-parsing-import
+          path: ruspic-cat-1.1.0-parsing-import.zip
