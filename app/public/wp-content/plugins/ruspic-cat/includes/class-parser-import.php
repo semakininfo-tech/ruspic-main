@@ -40,7 +40,7 @@ class RUSPIC_Cat_Parser_Import {
         if ( ! $sku || ! $name ) return new WP_Error( 'invalid_row', 'В строке отсутствует SKU или название.' );
         $images = preg_split( '/\r?\n|\s*[,|]\s*/', $get( 'images' ) );
         $images = array_values( array_filter( array_map( 'esc_url_raw', array_map( 'trim', $images ) ) ) );
-        $category_path = $this->resolve_category_path( $get, $options );
+        $category_path = $this->resolve_category_path( $get );
         return array(
             'sku' => $sku, 'name' => $name, 'short_description' => $get( 'short_description' ), 'description' => $get( 'description' ),
             'price' => $this->price( $get( 'regular_price' ) ), 'currency' => 'RUB', 'images' => $images, 'source_url' => esc_url_raw( $get( 'product_url' ) ),
@@ -49,20 +49,49 @@ class RUSPIC_Cat_Parser_Import {
         );
     }
 
-    private function resolve_category_path( $get, $options ) {
+    private function resolve_category_path( $get ) {
         foreach ( array( 'category_path', 'category', 'categories' ) as $column ) {
             if ( $get( $column ) ) return $this->split_category_path( $get( $column ) );
         }
-        if ( ! empty( $options['category'] ) ) return array( sanitize_text_field( $options['category'] ) );
         $url = $get( 'product_url' );
+        if ( ! $url ) return array();
+
+        // Category information from the file always wins. When the parser did not
+        // export category columns, derive the hierarchy from the product URL.
+        return $this->category_path_from_url( $url );
+    }
+
+    private function category_path_from_url( $url ) {
+        $host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
         $path = trim( (string) wp_parse_url( $url, PHP_URL_PATH ), '/' );
         $parts = array_values( array_filter( explode( '/', $path ) ) );
-        if ( count( $parts ) >= 2 ) {
-            $parts = array_slice( $parts, 0, -1 );
-            // Use the actual URL hierarchy as the category tree, with readable labels.
-            return array_values( array_map( function( $v ) { return sanitize_text_field( ucwords( str_replace( array( '-', '_' ), ' ', $v ) ) ); }, $parts ) );
+        if ( ! $parts ) return array();
+
+        // techelectro.ru exposes the catalogue hierarchy directly in the URL:
+        // /prod/cable-lugs/cu/tmlu/sku_101403/
+        if ( false !== strpos( $host, 'techelectro.ru' ) ) {
+            $prod = array_search( 'prod', $parts, true );
+            if ( false !== $prod ) $parts = array_slice( $parts, $prod + 1 );
+            $parts = array_values( array_filter( $parts, function( $v ) { return 0 !== strpos( strtolower( $v ), 'sku_' ); } ) );
+            $map = array(
+                'cable-lugs' => 'Кабельные наконечники, гильзы, сжимы',
+                'cu'        => 'Медные наконечники и гильзы',
+                'al'        => 'Алюминиевые наконечники и гильзы',
+                'al-cu'     => 'Алюмомедные наконечники и гильзы',
+                'tmlu'      => 'ТМЛ-У',
+            );
+            $out = array();
+            foreach ( $parts as $part ) {
+                $key = strtolower( trim( $part ) );
+                if ( isset( $map[ $key ] ) ) $out[] = $map[ $key ];
+                else $out[] = sanitize_text_field( ucwords( str_replace( array( '-', '_' ), ' ', $part ) ) );
+            }
+            return array_values( array_filter( $out ) );
         }
-        return array();
+
+        // Generic fallback: use the URL hierarchy, excluding the product slug.
+        if ( count( $parts ) >= 2 ) array_pop( $parts );
+        return array_values( array_map( function( $v ) { return sanitize_text_field( ucwords( str_replace( array( '-', '_' ), ' ', $v ) ) ); }, $parts ) );
     }
 
     private function split_category_path( $value ) {
@@ -128,7 +157,20 @@ class RUSPIC_Cat_Parser_Import {
     private function price( $value ) { $value = str_replace( array( ' ', "\xC2\xA0" ), '', trim( $value ) ); $value = str_replace( ',', '.', $value ); return is_numeric( $value ) ? (float) $value : null; }
     private function normalize_header( $value ) {
         $value = preg_replace( '/^\xEF\xBB\xBF/', '', trim( (string) $value ) );
-        $map = array( 'EAN-13' => 'ean13', 'Product URL' => 'product_url', 'Technical specifications' => 'technical_specifications', 'Regular price' => 'regular_price', 'Short description' => 'short_description' );
+        $map = array(
+            'EAN-13' => 'ean13',
+            'Product URL' => 'product_url',
+            'Technical specifications' => 'technical_specifications',
+            'Regular price' => 'regular_price',
+            'Short description' => 'short_description',
+            'Category' => 'category',
+            'Categories' => 'categories',
+            'Category path' => 'category_path',
+            'Product categories' => 'categories',
+            'Категория' => 'category',
+            'Категории' => 'categories',
+            'Путь категории' => 'category_path',
+        );
         if ( isset( $map[ $value ] ) ) return $map[ $value ];
         return sanitize_key( $value );
     }
