@@ -11,8 +11,10 @@ class RUSPIC_Cat_REST {
         register_rest_route($this->ns,'/attributes',array('methods'=>'GET','callback'=>array($this,'attributes'),'permission_callback'=>'__return_true'));
         register_rest_route($this->ns,'/orders',array('methods'=>'POST','callback'=>array($this,'create_order'),'permission_callback'=>'__return_true'));
     }
-    public function products($r){return rest_ensure_response(array('items'=>$this->db->get_products($r->get_params()),'count'=>$this->db->count('products')));}
-    public function product($r){$p=$this->db->get_product((int)$r['id']);if(!$p)return new WP_Error('not_found','Товар не найден',array('status'=>404));return rest_ensure_response($p);}
+    private function money($price,$currency='RUB'){if($price===null||$price==='')return 'Цена по запросу';$symbols=array('RUB'=>'₽','USD'=>'$','EUR'=>'€');return number_format((float)$price,2,',',' ').' '.($symbols[$currency]??$currency);}
+    private function decorate($p){$p->image_url=!empty($p->image_id)?wp_get_attachment_image_url((int)$p->image_id,'medium'):'';$p->price_label=$this->money($p->price,$p->currency);$p->stock_label=($p->stock_status??'in_stock')==='out_of_stock'?'Нет в наличии':(($p->stock_qty!==null&&$p->stock_qty!=='')?'В наличии · '.number_format((float)$p->stock_qty,0,',',' ').' шт.':'В наличии');return $p;}
+    public function products($r){$items=array_map(array($this,'decorate'),$this->db->get_products($r->get_params()));return rest_ensure_response(array('items'=>$items,'count'=>$this->db->count('products')));}
+    public function product($r){$p=$this->db->get_product((int)$r['id']);if(!$p)return new WP_Error('not_found','Товар не найден',array('status'=>404));return rest_ensure_response($this->decorate($p));}
     public function brands($r){return rest_ensure_response(array('items'=>$this->db->get_brands(array('limit'=>100))));}
     public function categories($r){return rest_ensure_response(array('items'=>$this->db->get_all_categories()));}
     public function attributes($r){return rest_ensure_response(array('items'=>$this->db->get_attributes()));}
